@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { Outlet, RouterProvider, createHashRouter } from 'react-router-dom';
 import { LoginPage } from '@/pages/LoginPage';
+import { UsagePortalPage } from '@/pages/UsagePortalPage';
 import { NotificationContainer } from '@/components/common/NotificationContainer';
 import { ConfirmationModal } from '@/components/common/ConfirmationModal';
 import { MainLayout } from '@/components/layout/MainLayout';
@@ -34,6 +35,11 @@ const router = createHashRouter([
   },
 ]);
 
+const isUsagePortalPath = () => {
+  const parts = window.location.pathname.split('/').filter(Boolean);
+  return parts[0] === 'usage';
+};
+
 function App() {
   const initializeTheme = useThemeStore((state) => state.initializeTheme);
   const language = useLanguageStore((state) => state.language);
@@ -52,6 +58,10 @@ function App() {
   useEffect(() => {
     document.documentElement.lang = language;
   }, [language]);
+
+  if (isUsagePortalPath()) {
+    return <UsagePortalPage />;
+  }
 
   return <RouterProvider router={router} />;
 }

@@ -1,0 +1,426 @@
+@use '../styles/variables' as *;
+@use '../styles/mixins' as *;
+
+.loginShell {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: $spacing-lg;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+.loginPanel {
+  width: min(520px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+  padding: $spacing-xl;
+  border: 1px solid var(--border-color);
+  border-radius: $radius-md;
+  background: var(--floating-surface);
+  box-shadow: var(--floating-shadow);
+
+  h1 {
+    margin: 0;
+    font-size: 30px;
+    line-height: 1.15;
+    letter-spacing: 0;
+    color: var(--text-primary);
+  }
+
+  p {
+    margin: 0;
+    color: var(--text-secondary);
+    line-height: 1.5;
+  }
+}
+
+.loginIcon {
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  border-radius: $radius-md;
+  color: var(--primary-color);
+  background: color-mix(in srgb, var(--primary-color) 12%, var(--bg-secondary));
+}
+
+.keyForm {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+  margin-top: $spacing-xs;
+
+  label {
+    font-size: 14px;
+    font-weight: 650;
+    color: var(--text-primary);
+  }
+
+  input {
+    width: 100%;
+    height: 44px;
+    padding: 0 13px;
+    border: 1px solid var(--border-color);
+    border-radius: $radius-md;
+    outline: none;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font: inherit;
+
+    &:focus {
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-color) 18%, transparent);
+    }
+  }
+
+  :global(.btn > span) {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: $spacing-sm;
+  }
+}
+
+.hintBox,
+.errorBox {
+  border-radius: $radius-md;
+  padding: 12px;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.hintBox {
+  border: 1px solid var(--border-color);
+  background: var(--bg-primary);
+  color: var(--text-secondary);
+}
+
+.errorBox {
+  border: 1px solid var(--danger-color);
+  background: var(--bg-error-light);
+  color: var(--danger-color);
+}
+
+.portalShell {
+  width: min(1120px, calc(100vw - 32px));
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-lg;
+  margin: $spacing-xl auto;
+  color: var(--text-primary);
+
+  @include mobile {
+    width: min(100vw - 20px, 1120px);
+    margin: $spacing-md auto;
+  }
+}
+
+.hero,
+.panel,
+.statCard {
+  border: 1px solid color-mix(in srgb, var(--border-color) 72%, transparent);
+  border-radius: $radius-md;
+  background: var(--floating-surface);
+  box-shadow: var(--shadow-lg);
+}
+
+.hero {
+  padding: $spacing-lg;
+}
+
+.heroTop,
+.metaRow,
+.panelHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: $spacing-md;
+
+  @include mobile {
+    flex-direction: column;
+  }
+}
+
+.hero h1,
+.panel h2 {
+  margin: 0;
+  color: var(--text-primary);
+  letter-spacing: 0;
+}
+
+.hero h1 {
+  font-size: 30px;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.hero p,
+.panel p {
+  margin: 8px 0 0;
+  color: var(--text-secondary);
+  line-height: 1.45;
+}
+
+.badgeRow,
+.actions,
+.windowTabs {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  flex-wrap: wrap;
+}
+
+.badgeRow {
+  margin-bottom: 12px;
+}
+
+.badge {
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  border: 1px solid var(--border-color);
+  border-radius: $radius-md;
+  background: var(--bg-primary);
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.badgeOk {
+  border-color: var(--success-badge-border);
+  background: var(--success-badge-bg);
+  color: var(--success-badge-text);
+}
+
+.actions {
+  justify-content: flex-end;
+
+  :global(.btn > span) {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    white-space: nowrap;
+  }
+
+  @include mobile {
+    width: 100%;
+    justify-content: flex-start;
+  }
+}
+
+.metaRow {
+  align-items: center;
+  padding-top: $spacing-md;
+  margin-top: $spacing-lg;
+  border-top: 1px solid var(--border-color);
+}
+
+.updatedText {
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.windowTabs {
+  gap: 0;
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+  border-radius: $radius-md;
+  background: var(--bg-primary);
+
+  button {
+    height: 36px;
+    padding: 0 14px;
+    border: 0;
+    border-right: 1px solid var(--border-color);
+    background: transparent;
+    color: var(--text-secondary);
+    font: inherit;
+    font-size: 13px;
+    font-weight: 750;
+    cursor: pointer;
+
+    &:last-child {
+      border-right: 0;
+    }
+
+    &:hover {
+      background: var(--bg-hover);
+      color: var(--text-primary);
+    }
+  }
+}
+
+.activeWindow {
+  background: var(--primary-color) !important;
+  color: var(--primary-contrast) !important;
+}
+
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: $spacing-md;
+
+  @media (max-width: 960px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  @include mobile {
+    grid-template-columns: 1fr;
+  }
+}
+
+.statCard {
+  min-height: 144px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: $spacing-sm;
+  padding: $spacing-lg;
+}
+
+.statIcon {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: $radius-md;
+  color: var(--primary-color);
+  background: color-mix(in srgb, var(--primary-color) 10%, var(--bg-secondary));
+}
+
+.statLabel {
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.statValue {
+  color: var(--text-primary);
+  font-size: 30px;
+  font-weight: 800;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.statSubLabel {
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.panel {
+  padding: $spacing-lg;
+  overflow: hidden;
+}
+
+.panelHeader {
+  margin-bottom: $spacing-md;
+}
+
+.chartBox {
+  width: 100%;
+  height: 280px;
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+  border-radius: $radius-md;
+  background: linear-gradient(180deg, var(--bg-primary), var(--bg-secondary));
+  color: var(--primary-color);
+
+  svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+}
+
+.chartGrid {
+  stroke: var(--border-color);
+  stroke-width: 1;
+}
+
+.chartArea {
+  fill: url('#usagePortalFill');
+}
+
+.chartLine {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.chartLabel {
+  fill: var(--text-secondary);
+  font-size: 12px;
+}
+
+.tableScroll {
+  width: calc(100% + #{$spacing-lg * 2});
+  margin: 0 (-$spacing-lg) (-$spacing-lg);
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  min-width: 940px;
+  border-collapse: collapse;
+  font-size: 13px;
+
+  th,
+  td {
+    padding: 13px 16px;
+    border-bottom: 1px solid var(--border-color);
+    text-align: left;
+    vertical-align: middle;
+  }
+
+  th {
+    border-top: 1px solid var(--border-color);
+    background: var(--bg-primary);
+    color: var(--text-secondary);
+    font-weight: 800;
+  }
+}
+
+.monoCell,
+.numericCell {
+  font-family: $font-mono;
+}
+
+.numericCell {
+  font-variant-numeric: tabular-nums;
+}
+
+.statusPill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0 9px;
+  border-radius: $radius-full;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.ok {
+  background: var(--success-badge-bg);
+  color: var(--success-badge-text);
+}
+
+.failed {
+  background: var(--failure-badge-bg);
+  color: var(--failure-badge-text);
+}
+
+.emptyState {
+  padding: $spacing-xl $spacing-md;
+  border: 1px dashed var(--border-color);
+  border-radius: $radius-md;
+  background: var(--bg-primary);
+  color: var(--text-secondary);
+  text-align: center;
+}
