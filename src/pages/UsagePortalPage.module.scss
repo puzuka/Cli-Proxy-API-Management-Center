@@ -1,12 +1,26 @@
 @use '../styles/variables' as *;
 @use '../styles/mixins' as *;
 
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 .loginShell {
-  min-height: 100vh;
+  min-height: 100dvh;
   display: grid;
   place-items: center;
   padding: $spacing-lg;
-  background: var(--bg-secondary);
+  background:
+    radial-gradient(circle at top left, color-mix(in srgb, var(--primary-color) 10%, transparent), transparent 34%),
+    var(--bg-secondary);
   color: var(--text-primary);
 }
 
@@ -60,7 +74,7 @@
 
   input {
     width: 100%;
-    height: 44px;
+    min-height: 46px;
     padding: 0 13px;
     border: 1px solid var(--border-color);
     border-radius: $radius-md;
@@ -83,6 +97,12 @@
   }
 }
 
+.fieldHelp {
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
 .hintBox,
 .errorBox {
   border-radius: $radius-md;
@@ -98,9 +118,25 @@
 }
 
 .errorBox {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
   border: 1px solid var(--danger-color);
   background: var(--bg-error-light);
   color: var(--danger-color);
+
+  span {
+    flex: 1;
+  }
+
+  :global(.btn) {
+    flex: 0 0 auto;
+  }
+
+  @include mobile {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
 }
 
 .portalShell {
@@ -113,13 +149,15 @@
 
   @include mobile {
     width: min(100vw - 20px, 1120px);
+    gap: $spacing-md;
     margin: $spacing-md auto;
   }
 }
 
 .hero,
 .panel,
-.statCard {
+.statCard,
+.insightCard {
   border: 1px solid color-mix(in srgb, var(--border-color) 72%, transparent);
   border-radius: $radius-md;
   background: var(--floating-surface);
@@ -196,6 +234,12 @@
   color: var(--success-badge-text);
 }
 
+.badgeWarning {
+  border-color: var(--warning-border);
+  background: var(--warning-bg);
+  color: var(--warning-text);
+}
+
 .actions {
   justify-content: flex-end;
 
@@ -219,9 +263,15 @@
   border-top: 1px solid var(--border-color);
 }
 
-.updatedText {
+.updatedText,
+.copyStatus {
   color: var(--text-secondary);
   font-size: 13px;
+}
+
+.copyStatus {
+  margin-top: 3px;
+  color: var(--text-tertiary);
 }
 
 .windowTabs {
@@ -232,7 +282,8 @@
   background: var(--bg-primary);
 
   button {
-    height: 36px;
+    min-width: 56px;
+    min-height: 38px;
     padding: 0 14px;
     border: 0;
     border-right: 1px solid var(--border-color);
@@ -250,6 +301,11 @@
     &:hover {
       background: var(--bg-hover);
       color: var(--text-primary);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--primary-color);
+      outline-offset: -2px;
     }
   }
 }
@@ -282,7 +338,8 @@
   padding: $spacing-lg;
 }
 
-.statIcon {
+.statIcon,
+.insightIcon {
   width: 42px;
   height: 42px;
   display: grid;
@@ -312,6 +369,71 @@
   font-size: 13px;
 }
 
+.successTone {
+  border-color: color-mix(in srgb, var(--success-color) 42%, var(--border-color));
+}
+
+.cautionTone {
+  border-color: color-mix(in srgb, var(--quota-medium-color) 52%, var(--border-color));
+}
+
+.warningTone {
+  border-color: color-mix(in srgb, var(--danger-color) 52%, var(--border-color));
+}
+
+.neutralTone {
+  border-color: var(--border-color);
+}
+
+.insightGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: $spacing-md;
+
+  @include mobile {
+    grid-template-columns: 1fr;
+  }
+}
+
+.insightCard {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  min-height: 98px;
+  padding: $spacing-md;
+
+  strong,
+  span {
+    display: block;
+  }
+
+  strong {
+    margin-top: 2px;
+    color: var(--text-primary);
+    font-size: 21px;
+    line-height: 1.2;
+    font-variant-numeric: tabular-nums;
+  }
+
+  span {
+    margin-top: 3px;
+    color: var(--text-secondary);
+    font-size: 13px;
+  }
+}
+
+.insightIcon {
+  flex: 0 0 auto;
+  width: 38px;
+  height: 38px;
+}
+
+.insightLabel {
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 700;
+}
+
 .panel {
   padding: $spacing-lg;
   overflow: hidden;
@@ -322,12 +444,15 @@
 }
 
 .chartBox {
+  position: relative;
   width: 100%;
-  height: 280px;
+  height: 300px;
   overflow: hidden;
   border: 1px solid var(--border-color);
   border-radius: $radius-md;
-  background: linear-gradient(180deg, var(--bg-primary), var(--bg-secondary));
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--bg-primary) 74%, transparent), var(--bg-secondary)),
+    var(--bg-primary);
   color: var(--primary-color);
 
   svg {
@@ -354,20 +479,240 @@
   stroke-linejoin: round;
 }
 
-.chartLabel {
+.chartDot {
+  fill: var(--floating-surface);
+  stroke: currentColor;
+  stroke-width: 3;
+}
+
+.chartBar {
+  fill: url('#usagePortalFill');
+  stroke: currentColor;
+  stroke-width: 2;
+}
+
+.chartLabel,
+.chartYAxis {
   fill: var(--text-secondary);
   font-size: 12px;
+}
+
+.chartEmpty {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.breakdownList {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.breakdownRow {
+  display: grid;
+  grid-template-columns: minmax(150px, 0.9fr) minmax(180px, 1.8fr) minmax(82px, auto);
+  align-items: center;
+  gap: $spacing-md;
+
+  @include mobile {
+    grid-template-columns: 1fr;
+    gap: $spacing-sm;
+    padding-bottom: $spacing-md;
+    border-bottom: 1px solid var(--border-color);
+
+    &:last-child {
+      padding-bottom: 0;
+      border-bottom: 0;
+    }
+  }
+}
+
+.breakdownMeta {
+  strong,
+  span {
+    display: block;
+  }
+
+  strong {
+    color: var(--text-primary);
+    font-size: 14px;
+  }
+
+  span {
+    margin-top: 2px;
+    color: var(--text-secondary);
+    font-size: 12px;
+    line-height: 1.35;
+  }
+}
+
+.breakdownTrack {
+  height: 12px;
+  overflow: hidden;
+  border-radius: $radius-full;
+  background: var(--bg-primary);
+
+  span {
+    display: block;
+    height: 100%;
+    min-width: 2px;
+    border-radius: inherit;
+    background: color-mix(in srgb, var(--primary-color) 70%, var(--text-primary));
+  }
+}
+
+.breakdownValue {
+  color: var(--text-primary);
+  font-family: $font-mono;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+
+  @include mobile {
+    text-align: left;
+  }
+}
+
+.recentSection {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+}
+
+.tableTools {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $spacing-md;
+
+  @include mobile {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
+
+.searchBox {
+  position: relative;
+  min-width: min(420px, 100%);
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  padding: 0 10px;
+  border: 1px solid var(--border-color);
+  border-radius: $radius-md;
+  background: var(--bg-primary);
+  color: var(--text-secondary);
+
+  input {
+    flex: 1;
+    min-width: 0;
+    height: 38px;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    color: var(--text-primary);
+    font: inherit;
+    font-size: 14px;
+  }
+
+  button {
+    width: 30px;
+    height: 30px;
+    display: grid;
+    place-items: center;
+    border: 0;
+    border-radius: $radius-sm;
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+
+    &:hover {
+      color: var(--text-primary);
+      background: var(--bg-hover);
+    }
+  }
+
+  &:focus-within {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-color) 16%, transparent);
+  }
+}
+
+.statusFilter {
+  display: inline-flex;
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+  border-radius: $radius-md;
+  background: var(--bg-primary);
+
+  button {
+    min-height: 40px;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 0 12px;
+    border: 0;
+    border-right: 1px solid var(--border-color);
+    background: transparent;
+    color: var(--text-secondary);
+    font: inherit;
+    font-size: 13px;
+    font-weight: 750;
+    cursor: pointer;
+
+    &:last-child {
+      border-right: 0;
+    }
+
+    &:hover {
+      background: var(--bg-hover);
+      color: var(--text-primary);
+    }
+
+    span {
+      color: var(--text-tertiary);
+      font-family: $font-mono;
+      font-size: 12px;
+    }
+  }
+
+  @include mobile {
+    display: flex;
+
+    button {
+      flex: 1;
+      justify-content: center;
+    }
+  }
+}
+
+.activeFilter {
+  background: var(--text-primary) !important;
+  color: var(--bg-primary) !important;
+
+  span {
+    color: inherit !important;
+  }
 }
 
 .tableScroll {
   width: calc(100% + #{$spacing-lg * 2});
   margin: 0 (-$spacing-lg) (-$spacing-lg);
   overflow-x: auto;
+
+  @include mobile {
+    display: none;
+  }
 }
 
 .table {
   width: 100%;
-  min-width: 940px;
+  min-width: 1180px;
   border-collapse: collapse;
   font-size: 13px;
 
@@ -380,10 +725,24 @@
   }
 
   th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
     border-top: 1px solid var(--border-color);
     background: var(--bg-primary);
     color: var(--text-secondary);
     font-weight: 800;
+  }
+
+  td small,
+  td span {
+    display: block;
+  }
+
+  td small {
+    margin-top: 2px;
+    color: var(--text-tertiary);
+    font-size: 11px;
   }
 }
 
@@ -396,6 +755,11 @@
   font-variant-numeric: tabular-nums;
 }
 
+.accountCell {
+  max-width: 220px;
+  overflow-wrap: anywhere;
+}
+
 .statusPill {
   display: inline-flex;
   align-items: center;
@@ -404,6 +768,7 @@
   border-radius: $radius-full;
   font-size: 12px;
   font-weight: 800;
+  font-variant-numeric: tabular-nums;
 }
 
 .ok {
@@ -416,6 +781,66 @@
   color: var(--failure-badge-text);
 }
 
+.requestCards {
+  display: none;
+
+  @include mobile {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-sm;
+  }
+}
+
+.requestCard {
+  padding: $spacing-md;
+  border: 1px solid var(--border-color);
+  border-radius: $radius-md;
+  background: var(--bg-primary);
+}
+
+.requestCardTop {
+  display: flex;
+  justify-content: space-between;
+  gap: $spacing-md;
+
+  strong,
+  span {
+    display: block;
+  }
+
+  strong {
+    color: var(--text-primary);
+    overflow-wrap: anywhere;
+  }
+
+  span {
+    margin-top: 2px;
+    color: var(--text-secondary);
+    font-size: 12px;
+  }
+}
+
+.requestCard dl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: $spacing-sm $spacing-md;
+  margin: $spacing-md 0 0;
+
+  dt {
+    color: var(--text-secondary);
+    font-size: 12px;
+  }
+
+  dd {
+    margin: 0;
+    color: var(--text-primary);
+    font-family: $font-mono;
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
+    overflow-wrap: anywhere;
+  }
+}
+
 .emptyState {
   padding: $spacing-xl $spacing-md;
   border: 1px dashed var(--border-color);
@@ -423,4 +848,43 @@
   background: var(--bg-primary);
   color: var(--text-secondary);
   text-align: center;
+}
+
+.skeletonCard,
+.skeletonPanel {
+  position: relative;
+  overflow: hidden;
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background: linear-gradient(
+      90deg,
+      transparent,
+      color-mix(in srgb, var(--text-primary) 7%, transparent),
+      transparent
+    );
+    animation: shimmer 1.2s infinite;
+  }
+}
+
+.skeletonPanel {
+  min-height: 260px;
+}
+
+@keyframes shimmer {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeletonCard,
+  .skeletonPanel {
+    &::after {
+      animation: none;
+    }
+  }
 }

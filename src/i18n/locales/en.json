@@ -1233,7 +1233,7 @@
         "add_title": "Add API Key",
         "input_label": "API Key",
         "input_placeholder": "Paste your API key",
-        "input_hint": "This only modifies the local config file content, it will not sync to the API Key Management interface",
+        "input_hint": "This updates the same top-level api-keys list used by API Keys Management.",
         "error_empty": "Please enter an API key",
         "error_invalid": "API key contains invalid characters"
       },

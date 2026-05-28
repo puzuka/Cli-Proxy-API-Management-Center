@@ -15,10 +15,12 @@ export interface UsageAggregate {
   success: number;
   failed: number;
   tokens: UsageTokenTotals;
+  cost_usd: number;
 }
 
 export interface UsageDailyPoint extends UsageAggregate {
   date: string;
+  label?: string;
 }
 
 export interface UsageRecentRequest {
@@ -26,13 +28,20 @@ export interface UsageRecentRequest {
   provider: string;
   model: string;
   alias?: string;
+  source?: string;
+  account_label?: string;
+  api_key_label?: string;
+  auth_index?: string;
+  auth_type?: string;
   endpoint?: string;
   request_id?: string;
   reasoning_effort?: string;
   input_tokens: number;
   output_tokens: number;
+  reasoning_tokens: number;
   cached_tokens: number;
   total_tokens: number;
+  cost_usd: number;
   latency_ms: number;
   status_code: number;
   failed: boolean;
