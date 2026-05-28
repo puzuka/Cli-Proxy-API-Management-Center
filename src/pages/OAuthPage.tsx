@@ -32,6 +32,11 @@ interface ProviderState {
   callbackSubmitting?: boolean;
   callbackStatus?: 'success' | 'error';
   callbackError?: string;
+  // Kiro-specific
+  kiroMethod?: 'builder-id' | 'idc';
+  kiroStartUrl?: string;
+  kiroRegion?: string;
+  kiroStartUrlError?: string;
 }
 
 interface VertexImportResult {
@@ -296,6 +301,28 @@ export function OAuthPage() {
     if (provider === 'gemini-cli') {
       updateProviderState(provider, { projectIdError: undefined });
     }
+    // Kiro: validate IDC inputs and assemble option payload.
+    let kiroOptions: { method?: 'builder-id' | 'idc'; startUrl?: string; region?: string } | undefined;
+    if (provider === 'kiro') {
+      const kiroState = states[provider];
+      const method = kiroState?.kiroMethod ?? 'builder-id';
+      const startUrl = (kiroState?.kiroStartUrl ?? '').trim();
+      const region = (kiroState?.kiroRegion ?? '').trim();
+      updateProviderState(provider, { kiroStartUrlError: undefined });
+      if (method === 'idc' && !startUrl) {
+        const message = t('auth_login.kiro_idc_start_url_required', {
+          defaultValue: 'Please enter the IAM Identity Center Start URL.'
+        });
+        updateProviderState(provider, { kiroStartUrlError: message, status: 'error', error: message });
+        showNotification(message, 'warning');
+        return;
+      }
+      kiroOptions = {
+        method,
+        startUrl: method === 'idc' ? startUrl : undefined,
+        region: method === 'idc' ? region || 'us-east-1' : undefined
+      };
+    }
     updateProviderState(provider, {
       url: undefined,
       state: undefined,
@@ -309,7 +336,11 @@ export function OAuthPage() {
     try {
       const res = await oauthApi.startAuth(
         provider,
-        provider === 'gemini-cli' ? { projectId: projectId || undefined } : undefined
+        provider === 'gemini-cli'
+          ? { projectId: projectId || undefined }
+          : provider === 'kiro'
+            ? { kiro: kiroOptions }
+            : undefined
       );
       if (!res.state) {
         const message = t('auth_login.missing_state');
@@ -502,6 +533,88 @@ export function OAuthPage() {
                         }
                         placeholder={t('auth_login.gemini_cli_project_id_placeholder')}
                       />
+                    </div>
+                  )}
+                  {provider.id === 'kiro' && (
+                    <div className={styles.geminiProjectField}>
+                      <div className={styles.formItem}>
+                        <label className={styles.formItemLabel}>
+                          {t('auth_login.kiro_method_label', { defaultValue: 'Authentication method' })}
+                        </label>
+                        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                          <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
+                            <input
+                              type="radio"
+                              name={`kiro-method-${provider.id}`}
+                              value="builder-id"
+                              checked={(state.kiroMethod ?? 'builder-id') === 'builder-id'}
+                              disabled={Boolean(state.polling)}
+                              onChange={() =>
+                                updateProviderState(provider.id, {
+                                  kiroMethod: 'builder-id',
+                                  kiroStartUrlError: undefined
+                                })
+                              }
+                            />
+                            <span>{t('auth_login.kiro_method_builder_id', { defaultValue: 'AWS Builder ID (free / personal)' })}</span>
+                          </label>
+                          <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
+                            <input
+                              type="radio"
+                              name={`kiro-method-${provider.id}`}
+                              value="idc"
+                              checked={state.kiroMethod === 'idc'}
+                              disabled={Boolean(state.polling)}
+                              onChange={() =>
+                                updateProviderState(provider.id, {
+                                  kiroMethod: 'idc'
+                                })
+                              }
+                            />
+                            <span>{t('auth_login.kiro_method_idc', { defaultValue: 'AWS IAM Identity Center (Enterprise SSO)' })}</span>
+                          </label>
+                        </div>
+                        <div className={styles.cardHintSecondary}>
+                          {t('auth_login.kiro_method_hint', {
+                            defaultValue:
+                              'Builder ID: free Kiro accounts (Google/GitHub social login on kiro.dev). IAM Identity Center: corporate AWS SSO — paste your Start URL and the IDC home region.'
+                          })}
+                        </div>
+                      </div>
+                      {state.kiroMethod === 'idc' && (
+                        <>
+                          <Input
+                            label={t('auth_login.kiro_start_url_label', { defaultValue: 'IAM Identity Center Start URL' })}
+                            hint={t('auth_login.kiro_start_url_hint', {
+                              defaultValue: 'e.g. https://my-org.awsapps.com/start'
+                            })}
+                            value={state.kiroStartUrl || ''}
+                            error={state.kiroStartUrlError}
+                            disabled={Boolean(state.polling)}
+                            onChange={(e) =>
+                              updateProviderState(provider.id, {
+                                kiroStartUrl: e.target.value,
+                                kiroStartUrlError: undefined
+                              })
+                            }
+                            placeholder="https://my-org.awsapps.com/start"
+                          />
+                          <Input
+                            label={t('auth_login.kiro_region_label', { defaultValue: 'IAM Identity Center region' })}
+                            hint={t('auth_login.kiro_region_hint', {
+                              defaultValue: 'AWS region of the IDC instance. Defaults to us-east-1 when blank.'
+                            })}
+                            value={state.kiroRegion || ''}
+                            disabled={Boolean(state.polling)}
+                            onChange={(e) =>
+                              updateProviderState(provider.id, {
+                                kiroRegion: e.target.value
+                              })
+                            }
+                            placeholder="us-east-1"
+                          />
+                        </>
+                      )}
                     </div>
                   )}
                   {state.url && (
