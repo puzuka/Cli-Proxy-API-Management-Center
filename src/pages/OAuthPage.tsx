@@ -18,6 +18,7 @@ import iconKimiDark from '@/assets/icons/kimi-dark.svg';
 import iconVertex from '@/assets/icons/vertex.svg';
 import iconGrok from '@/assets/icons/grok.svg';
 import iconGrokDark from '@/assets/icons/grok-dark.svg';
+import iconKiro from '@/assets/icons/kiro.svg';
 
 interface ProviderState {
   url?: string;
@@ -70,7 +71,8 @@ const PROVIDERS: { id: OAuthProvider; titleKey: string; hintKey: string; urlLabe
   { id: 'antigravity', titleKey: 'auth_login.antigravity_oauth_title', hintKey: 'auth_login.antigravity_oauth_hint', urlLabelKey: 'auth_login.antigravity_oauth_url_label', icon: iconAntigravity },
   { id: 'gemini-cli', titleKey: 'auth_login.gemini_cli_oauth_title', hintKey: 'auth_login.gemini_cli_oauth_hint', urlLabelKey: 'auth_login.gemini_cli_oauth_url_label', icon: iconGemini },
   { id: 'kimi', titleKey: 'auth_login.kimi_oauth_title', hintKey: 'auth_login.kimi_oauth_hint', urlLabelKey: 'auth_login.kimi_oauth_url_label', icon: { light: iconKimiLight, dark: iconKimiDark } },
-  { id: 'xai', titleKey: 'auth_login.xai_oauth_title', hintKey: 'auth_login.xai_oauth_hint', urlLabelKey: 'auth_login.xai_oauth_url_label', icon: { light: iconGrok, dark: iconGrokDark } }
+  { id: 'xai', titleKey: 'auth_login.xai_oauth_title', hintKey: 'auth_login.xai_oauth_hint', urlLabelKey: 'auth_login.xai_oauth_url_label', icon: { light: iconGrok, dark: iconGrokDark } },
+  { id: 'kiro', titleKey: 'auth_login.kiro_oauth_title', hintKey: 'auth_login.kiro_oauth_hint', urlLabelKey: 'auth_login.kiro_oauth_url_label', icon: iconKiro }
 ];
 
 const CALLBACK_SUPPORTED: OAuthProvider[] = [
