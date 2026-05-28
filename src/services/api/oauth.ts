@@ -10,11 +10,34 @@ export type OAuthProvider =
   | 'antigravity'
   | 'gemini-cli'
   | 'kimi'
-  | 'xai';
+  | 'xai'
+  | 'kiro';
+
+export type KiroAuthMethod = 'builder-id' | 'idc';
+
+export interface KiroAuthOptions {
+  /** "builder-id" (default) for free AWS Builder ID accounts, "idc" for IAM Identity Center / Enterprise SSO. */
+  method?: KiroAuthMethod;
+  /** Required when method === "idc". e.g. https://my-org.awsapps.com/start */
+  startUrl?: string;
+  /** Required when method === "idc". e.g. us-east-1 */
+  region?: string;
+}
+
+export interface OAuthStartOptions {
+  /** gemini-cli only — Google Cloud project ID. */
+  projectId?: string;
+  /** kiro only — flow selection and IDC inputs. */
+  kiro?: KiroAuthOptions;
+}
 
 export interface OAuthStartResponse {
   url: string;
   state?: string;
+  /** kiro only — echoes the resolved auth method back to the UI. */
+  method?: KiroAuthMethod;
+  /** kiro only — user code embedded in the verification URL (informational). */
+  user_code?: string;
 }
 
 export interface OAuthCallbackResponse {
@@ -33,13 +56,19 @@ const CALLBACK_PROVIDER_MAP: Partial<Record<OAuthProvider, string>> = {
 };
 
 export const oauthApi = {
-  startAuth: (provider: OAuthProvider, options?: { projectId?: string }) => {
+  startAuth: (provider: OAuthProvider, options?: OAuthStartOptions) => {
     const params: Record<string, string | boolean> = {};
     if (WEBUI_SUPPORTED.includes(provider)) {
       params.is_webui = true;
     }
     if (provider === 'gemini-cli' && options?.projectId) {
       params.project_id = options.projectId;
+    }
+    if (provider === 'kiro' && options?.kiro) {
+      const { method, startUrl, region } = options.kiro;
+      if (method) params.method = method;
+      if (startUrl) params.start_url = startUrl;
+      if (region) params.region = region;
     }
     return apiClient.get<OAuthStartResponse>(`/${provider}-auth-url`, {
       params: Object.keys(params).length ? params : undefined
