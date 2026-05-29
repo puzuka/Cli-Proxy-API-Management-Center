@@ -5,6 +5,7 @@
 import type {
   ClaudeUsagePayload,
   CodexUsagePayload,
+  CopilotUserPayload,
   GeminiCliCodeAssistPayload,
   GeminiCliQuotaPayload,
   KimiUsagePayload,
@@ -177,6 +178,23 @@ export function parseCodexUsagePayload(payload: unknown): CodexUsagePayload | nu
   }
   if (typeof payload === 'object') {
     return payload as CodexUsagePayload;
+  }
+  return null;
+}
+
+export function parseCopilotUserPayload(payload: unknown): CopilotUserPayload | null {
+  if (payload === undefined || payload === null) return null;
+  if (typeof payload === 'string') {
+    const trimmed = payload.trim();
+    if (!trimmed) return null;
+    try {
+      return JSON.parse(trimmed) as CopilotUserPayload;
+    } catch {
+      return null;
+    }
+  }
+  if (typeof payload === 'object') {
+    return payload as CopilotUserPayload;
   }
   return null;
 }

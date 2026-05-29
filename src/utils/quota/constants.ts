@@ -34,6 +34,10 @@ export const TYPE_COLORS: Record<string, TypeColorSet> = {
     light: { bg: '#eae7ff', text: '#3538d4' },
     dark: { bg: '#262395', text: '#b5b0ff' },
   },
+  copilot: {
+    light: { bg: '#e5e7eb', text: '#111827', border: '1px solid #cbd5e1' },
+    dark: { bg: '#0f172a', text: '#f8fafc', border: '1px solid #475569' },
+  },
   kimi: {
     light: { bg: '#dce8ff', text: '#0560cf' },
     dark: { bg: '#003880', text: '#70b5ff' },
@@ -198,6 +202,22 @@ export const CODEX_REQUEST_HEADERS = {
   Authorization: 'Bearer $TOKEN$',
   'Content-Type': 'application/json',
   'User-Agent': 'codex_cli_rs/0.76.0 (Debian 13.0.0; x86_64) WindowsTerminal',
+};
+
+// GitHub Copilot API configuration
+export const COPILOT_USER_URL = 'https://api.github.com/copilot_internal/user';
+
+export const COPILOT_REQUEST_HEADERS = {
+  Authorization: 'Bearer $GITHUB_TOKEN$',
+  Accept: 'application/json',
+  'Copilot-Integration-Id': 'vscode-chat',
+  'Editor-Plugin-Version': 'copilot-chat/0.35.0',
+  'Editor-Version': 'vscode/1.85.1',
+  'OpenAI-Intent': 'conversation-panel',
+  'User-Agent': 'GitHubCopilotChat/0.35.0',
+  'X-GitHub-Api-Version': '2025-04-01',
+  'X-Initiator': 'user',
+  'X-Requested-With': 'XMLHttpRequest',
 };
 
 // Kimi API configuration

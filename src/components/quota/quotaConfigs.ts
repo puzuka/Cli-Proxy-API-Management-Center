@@ -20,6 +20,10 @@ import type {
   CodexUsageWindow,
   CodexQuotaWindow,
   CodexUsagePayload,
+  CopilotQuotaRow,
+  CopilotQuotaSnapshot,
+  CopilotQuotaState,
+  CopilotUserPayload,
   GeminiCliCodeAssistPayload,
   GeminiCliCredits,
   GeminiCliParsedBucket,
@@ -43,6 +47,8 @@ import {
   CLAUDE_USAGE_WINDOW_KEYS,
   CODEX_USAGE_URL,
   CODEX_REQUEST_HEADERS,
+  COPILOT_USER_URL,
+  COPILOT_REQUEST_HEADERS,
   GEMINI_CLI_QUOTA_URL,
   GEMINI_CLI_CODE_ASSIST_URL,
   GEMINI_CLI_REQUEST_HEADERS,
@@ -58,6 +64,7 @@ import {
   parseAntigravityPayload,
   parseClaudeUsagePayload,
   parseCodexUsagePayload,
+  parseCopilotUserPayload,
   parseGeminiCliQuotaPayload,
   parseGeminiCliCodeAssistPayload,
   parseKimiUsagePayload,
@@ -76,6 +83,7 @@ import {
   isAntigravityFile,
   isClaudeFile,
   isCodexFile,
+  isCopilotFile,
   isDisabledAuthFile,
   isGeminiCliFile,
   isKimiFile,
@@ -88,7 +96,14 @@ import styles from '@/pages/QuotaPage.module.scss';
 
 type QuotaUpdater<T> = T | ((prev: T) => T);
 
-type QuotaType = 'antigravity' | 'claude' | 'codex' | 'gemini-cli' | 'kimi' | 'xai';
+type QuotaType =
+  | 'antigravity'
+  | 'claude'
+  | 'codex'
+  | 'copilot'
+  | 'gemini-cli'
+  | 'kimi'
+  | 'xai';
 
 const DEFAULT_ANTIGRAVITY_PROJECT_ID = 'bamboo-precept-lgxtn';
 const QUOTA_PROGRESS_HIGH_THRESHOLD = 70;
@@ -108,12 +123,14 @@ export interface QuotaStore {
   antigravityQuota: Record<string, AntigravityQuotaState>;
   claudeQuota: Record<string, ClaudeQuotaState>;
   codexQuota: Record<string, CodexQuotaState>;
+  copilotQuota: Record<string, CopilotQuotaState>;
   geminiCliQuota: Record<string, GeminiCliQuotaState>;
   kimiQuota: Record<string, KimiQuotaState>;
   xaiQuota: Record<string, XaiQuotaState>;
   setAntigravityQuota: (updater: QuotaUpdater<Record<string, AntigravityQuotaState>>) => void;
   setClaudeQuota: (updater: QuotaUpdater<Record<string, ClaudeQuotaState>>) => void;
   setCodexQuota: (updater: QuotaUpdater<Record<string, CodexQuotaState>>) => void;
+  setCopilotQuota: (updater: QuotaUpdater<Record<string, CopilotQuotaState>>) => void;
   setGeminiCliQuota: (updater: QuotaUpdater<Record<string, GeminiCliQuotaState>>) => void;
   setKimiQuota: (updater: QuotaUpdater<Record<string, KimiQuotaState>>) => void;
   setXaiQuota: (updater: QuotaUpdater<Record<string, XaiQuotaState>>) => void;
@@ -460,6 +477,180 @@ const fetchCodexQuota = async (
   const planTypeFromUsage = normalizePlanType(payload.plan_type ?? payload.planType);
   const windows = buildCodexQuotaWindows(payload, t);
   return { planType: planTypeFromUsage ?? planTypeFromFile, windows };
+};
+
+const COPILOT_QUOTA_LABEL_KEYS: Record<string, string> = {
+  chat: 'copilot_quota.chat',
+  completions: 'copilot_quota.completions',
+  premium_interactions: 'copilot_quota.premium_interactions',
+};
+
+const COPILOT_QUOTA_ORDER = new Map(
+  ['chat', 'completions', 'premium_interactions'].map((id, index) => [id, index] as const)
+);
+
+const normalizeCopilotFeatureId = (value: string): string =>
+  value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '');
+
+const normalizeCopilotFlag = (value: unknown): boolean => {
+  if (typeof value === 'boolean') return value;
+  if (typeof value === 'number') return value !== 0;
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase();
+    return normalized === 'true' || normalized === '1' || normalized === 'yes';
+  }
+  return false;
+};
+
+const buildCopilotSnapshotRow = (
+  rawId: string,
+  snapshot: CopilotQuotaSnapshot | null | undefined,
+  resetDate?: string
+): CopilotQuotaRow | null => {
+  if (!snapshot || typeof snapshot !== 'object') return null;
+
+  const id = normalizeCopilotFeatureId(rawId);
+  if (!id) return null;
+
+  const unlimited = normalizeCopilotFlag(snapshot.unlimited);
+  const limit = normalizeNumberValue(snapshot.entitlement ?? snapshot.total ?? snapshot.limit);
+  const remaining = normalizeNumberValue(snapshot.remaining);
+  const usedRaw = normalizeNumberValue(snapshot.used);
+  const used =
+    usedRaw ??
+    (limit !== null && remaining !== null ? Math.max(0, limit - remaining) : null);
+
+  if (!unlimited && limit === null && remaining === null && used === null) {
+    return null;
+  }
+
+  const derivedRemaining =
+    remaining ?? (limit !== null && used !== null ? Math.max(0, limit - used) : null);
+  const remainingPercent = unlimited
+    ? 100
+    : limit !== null && limit > 0 && derivedRemaining !== null
+      ? Math.max(0, Math.min(100, (derivedRemaining / limit) * 100))
+      : derivedRemaining !== null && derivedRemaining <= 0
+        ? 0
+        : null;
+
+  return {
+    id,
+    label: rawId,
+    labelKey: COPILOT_QUOTA_LABEL_KEYS[id],
+    used,
+    limit,
+    remaining: derivedRemaining,
+    remainingPercent,
+    unlimited,
+    resetDate,
+  };
+};
+
+const buildCopilotMonthlyRow = (
+  rawId: string,
+  monthly: Record<string, number | string | null | undefined>,
+  usedQuotas: Record<string, number | string | null | undefined>,
+  resetDate?: string
+): CopilotQuotaRow | null => {
+  const id = normalizeCopilotFeatureId(rawId);
+  if (!id) return null;
+
+  const limit = normalizeNumberValue(monthly[rawId]);
+  const used = normalizeNumberValue(usedQuotas[rawId]) ?? 0;
+  const remaining = limit !== null ? Math.max(0, limit - used) : null;
+  const remainingPercent =
+    limit !== null && limit > 0 ? Math.max(0, Math.min(100, (remaining ?? 0) / limit * 100)) : null;
+
+  if (limit === null && used === null && remaining === null) return null;
+
+  return {
+    id,
+    label: rawId,
+    labelKey: COPILOT_QUOTA_LABEL_KEYS[id],
+    used,
+    limit,
+    remaining,
+    remainingPercent,
+    resetDate,
+  };
+};
+
+const sortCopilotRows = (rows: CopilotQuotaRow[]): CopilotQuotaRow[] =>
+  rows.sort((a, b) => {
+    const orderA = COPILOT_QUOTA_ORDER.get(a.id) ?? Number.MAX_SAFE_INTEGER;
+    const orderB = COPILOT_QUOTA_ORDER.get(b.id) ?? Number.MAX_SAFE_INTEGER;
+    if (orderA !== orderB) return orderA - orderB;
+    return a.id.localeCompare(b.id);
+  });
+
+const buildCopilotQuotaRows = (payload: CopilotUserPayload): CopilotQuotaRow[] => {
+  const resetDate =
+    normalizeStringValue(payload.quota_reset_date) ??
+    normalizeStringValue(payload.limited_user_reset_date) ??
+    undefined;
+
+  if (payload.quota_snapshots && typeof payload.quota_snapshots === 'object') {
+    return sortCopilotRows(
+      Object.entries(payload.quota_snapshots)
+        .map(([id, snapshot]) => buildCopilotSnapshotRow(id, snapshot, resetDate))
+        .filter((row): row is CopilotQuotaRow => row !== null)
+    );
+  }
+
+  const monthlyQuotas =
+    payload.monthly_quotas && typeof payload.monthly_quotas === 'object'
+      ? payload.monthly_quotas
+      : null;
+  const usedQuotas =
+    payload.limited_user_quotas && typeof payload.limited_user_quotas === 'object'
+      ? payload.limited_user_quotas
+      : {};
+
+  if (!monthlyQuotas) return [];
+
+  const keys = Array.from(new Set([...Object.keys(monthlyQuotas), ...Object.keys(usedQuotas)]));
+  return sortCopilotRows(
+    keys
+      .map((id) => buildCopilotMonthlyRow(id, monthlyQuotas, usedQuotas, resetDate))
+      .filter((row): row is CopilotQuotaRow => row !== null)
+  );
+};
+
+const fetchCopilotQuota = async (
+  file: AuthFileItem,
+  t: TFunction
+): Promise<{ planType: string | null; rows: CopilotQuotaRow[] }> => {
+  const rawAuthIndex = file['auth_index'] ?? file.authIndex;
+  const authIndex = normalizeAuthIndex(rawAuthIndex);
+  if (!authIndex) {
+    throw new Error(t('copilot_quota.missing_auth_index'));
+  }
+
+  const result = await apiCallApi.request({
+    authIndex,
+    method: 'GET',
+    url: COPILOT_USER_URL,
+    header: { ...COPILOT_REQUEST_HEADERS },
+  });
+
+  if (result.statusCode < 200 || result.statusCode >= 300) {
+    throw createStatusError(getApiCallErrorMessage(result), result.statusCode);
+  }
+
+  const payload = parseCopilotUserPayload(result.body ?? result.bodyText);
+  if (!payload) {
+    throw new Error(t('copilot_quota.empty_data'));
+  }
+
+  return {
+    planType: normalizeStringValue(payload.copilot_plan ?? payload.access_type_sku),
+    rows: buildCopilotQuotaRows(payload),
+  };
 };
 
 const GEMINI_CLI_G1_CREDIT_TYPE = 'GOOGLE_ONE_AI';
@@ -823,6 +1014,106 @@ const renderCodexItems = (
         ),
         h(QuotaProgressBar, {
           percent: remaining,
+          highThreshold: QUOTA_PROGRESS_HIGH_THRESHOLD,
+          mediumThreshold: QUOTA_PROGRESS_MEDIUM_THRESHOLD,
+        })
+      );
+    })
+  );
+
+  return h(Fragment, null, ...nodes);
+};
+
+const formatCopilotPlanLabel = (planType?: string | null): string | null => {
+  const normalized = normalizeStringValue(planType);
+  if (!normalized) return null;
+  return normalized
+    .replace(/[_-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+};
+
+const formatCopilotQuotaNumber = (value: number): string =>
+  new Intl.NumberFormat(undefined, {
+    maximumFractionDigits: 2,
+  }).format(value);
+
+const formatCopilotAmount = (row: CopilotQuotaRow, t: TFunction): string | null => {
+  if (row.unlimited) return t('copilot_quota.unlimited');
+  if (row.used !== null && row.limit !== null) {
+    return `${formatCopilotQuotaNumber(row.used)} / ${formatCopilotQuotaNumber(row.limit)}`;
+  }
+  if (row.remaining !== null) {
+    return t('copilot_quota.remaining_amount', {
+      count: formatCopilotQuotaNumber(row.remaining),
+    });
+  }
+  if (row.used !== null) {
+    return t('copilot_quota.used_amount', {
+      count: formatCopilotQuotaNumber(row.used),
+    });
+  }
+  return null;
+};
+
+const renderCopilotItems = (
+  quota: CopilotQuotaState,
+  t: TFunction,
+  helpers: QuotaRenderHelpers
+): ReactNode => {
+  const { styles: styleMap, QuotaProgressBar } = helpers;
+  const { createElement: h, Fragment } = React;
+  const rows = quota.rows ?? [];
+  const nodes: ReactNode[] = [];
+  const planLabel = formatCopilotPlanLabel(quota.planType);
+
+  if (planLabel) {
+    nodes.push(
+      h(
+        'div',
+        { key: 'plan', className: styleMap.codexPlan },
+        h('span', { className: styleMap.codexPlanLabel }, t('copilot_quota.plan_label')),
+        h('span', { className: styleMap.codexPlanValue }, planLabel)
+      )
+    );
+  }
+
+  if (rows.length === 0) {
+    nodes.push(
+      h('div', { key: 'empty', className: styleMap.quotaMessage }, t('copilot_quota.empty_data'))
+    );
+    return h(Fragment, null, ...nodes);
+  }
+
+  nodes.push(
+    ...rows.map((row) => {
+      const percent =
+        row.remainingPercent === null ? null : Math.max(0, Math.min(100, row.remainingPercent));
+      const percentLabel = percent === null ? '--' : `${Math.round(percent)}%`;
+      const rowLabel = row.labelKey
+        ? t(row.labelKey, (row.labelParams ?? {}) as Record<string, string | number>)
+        : (row.label ?? row.id);
+      const amountLabel = formatCopilotAmount(row, t);
+      const resetLabel = formatQuotaResetTime(row.resetDate);
+
+      return h(
+        'div',
+        { key: row.id, className: styleMap.quotaRow },
+        h(
+          'div',
+          { className: styleMap.quotaRowHeader },
+          h('span', { className: styleMap.quotaModel }, rowLabel),
+          h(
+            'div',
+            { className: styleMap.quotaMeta },
+            h('span', { className: styleMap.quotaPercent }, percentLabel),
+            amountLabel ? h('span', { className: styleMap.quotaAmount }, amountLabel) : null,
+            h('span', { className: styleMap.quotaReset }, resetLabel)
+          )
+        ),
+        h(QuotaProgressBar, {
+          percent,
           highThreshold: QUOTA_PROGRESS_HIGH_THRESHOLD,
           mediumThreshold: QUOTA_PROGRESS_MEDIUM_THRESHOLD,
         })
@@ -1225,6 +1516,37 @@ export const CODEX_CONFIG: QuotaConfig<
   controlClassName: styles.codexControl,
   gridClassName: styles.codexGrid,
   renderQuotaItems: renderCodexItems,
+};
+
+export const COPILOT_CONFIG: QuotaConfig<
+  CopilotQuotaState,
+  { planType: string | null; rows: CopilotQuotaRow[] }
+> = {
+  type: 'copilot',
+  i18nPrefix: 'copilot_quota',
+  cardIdleMessageKey: 'quota_management.card_idle_hint',
+  filterFn: (file) => isCopilotFile(file) && !isDisabledAuthFile(file),
+  fetchQuota: fetchCopilotQuota,
+  storeSelector: (state) => state.copilotQuota,
+  storeSetter: 'setCopilotQuota',
+  buildLoadingState: () => ({ status: 'loading', rows: [], planType: null }),
+  buildSuccessState: (data) => ({
+    status: 'success',
+    rows: data.rows,
+    planType: data.planType,
+  }),
+  buildErrorState: (message, status) => ({
+    status: 'error',
+    rows: [],
+    planType: null,
+    error: message,
+    errorStatus: status,
+  }),
+  cardClassName: styles.copilotCard,
+  controlsClassName: styles.copilotControls,
+  controlClassName: styles.copilotControl,
+  gridClassName: styles.copilotGrid,
+  renderQuotaItems: renderCopilotItems,
 };
 
 export const GEMINI_CLI_CONFIG: QuotaConfig<

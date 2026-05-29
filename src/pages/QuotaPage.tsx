@@ -1,5 +1,5 @@
 /**
- * Quota management page - coordinates the three quota sections.
+ * Quota management page - coordinates provider quota sections.
  */
 
 import { useCallback, useEffect, useState } from 'react';
@@ -12,6 +12,7 @@ import {
   ANTIGRAVITY_CONFIG,
   CLAUDE_CONFIG,
   CODEX_CONFIG,
+  COPILOT_CONFIG,
   GEMINI_CLI_CONFIG,
   KIMI_CONFIG,
   XAI_CONFIG,
@@ -86,6 +87,12 @@ export function QuotaPage() {
       />
       <QuotaSection
         config={CODEX_CONFIG}
+        files={files}
+        loading={loading}
+        disabled={disableControls}
+      />
+      <QuotaSection
+        config={COPILOT_CONFIG}
         files={files}
         loading={loading}
         disabled={disableControls}

@@ -2,6 +2,7 @@ import type { TFunction } from 'i18next';
 import iconAntigravity from '@/assets/icons/antigravity.svg';
 import iconClaude from '@/assets/icons/claude.svg';
 import iconCodex from '@/assets/icons/codex.svg';
+import iconCopilot from '@/assets/icons/copilot.svg';
 import iconGemini from '@/assets/icons/gemini.svg';
 import iconGrok from '@/assets/icons/grok.svg';
 import iconGrokDark from '@/assets/icons/grok-dark.svg';
@@ -24,12 +25,20 @@ export type AuthFileModelItem = {
 };
 export type AuthFileIconAsset = string | { light: string; dark: string };
 
-export type QuotaProviderType = 'antigravity' | 'claude' | 'codex' | 'gemini-cli' | 'kimi' | 'xai';
+export type QuotaProviderType =
+  | 'antigravity'
+  | 'claude'
+  | 'codex'
+  | 'copilot'
+  | 'gemini-cli'
+  | 'kimi'
+  | 'xai';
 
 export const QUOTA_PROVIDER_TYPES = new Set<QuotaProviderType>([
   'antigravity',
   'claude',
   'codex',
+  'copilot',
   'gemini-cli',
   'kimi',
   'xai',
@@ -80,6 +89,11 @@ export const TYPE_COLORS: Record<string, TypeColorSet> = {
     light: { bg: '#eae7ff', text: '#3538d4' },
     dark: { bg: '#262395', text: '#b5b0ff' },
   },
+  // GitHub Copilot: neutral dark mark, separate from Codex and xAI.
+  copilot: {
+    light: { bg: '#e5e7eb', text: '#111827', border: '1px solid #cbd5e1' },
+    dark: { bg: '#0f172a', text: '#f8fafc', border: '1px solid #475569' },
+  },
   // Antigravity logo: 多色（主色 #3789F9 蓝 + #53A89A 青绿），用青色区分
   antigravity: {
     light: { bg: '#e0f7fa', text: '#006064' },
@@ -115,6 +129,7 @@ export const AUTH_FILE_ICONS: Record<string, AuthFileIconAsset> = {
   aistudio: iconGemini,
   claude: iconClaude,
   codex: iconCodex,
+  copilot: iconCopilot,
   gemini: iconGemini,
   'gemini-cli': iconGemini,
   xai: { light: iconGrok, dark: iconGrokDark },
@@ -140,6 +155,7 @@ export const resolveQuotaErrorMessage = (
 export const normalizeProviderKey = (value: string) => {
   const key = value.trim().toLowerCase().replace(/_/g, '-');
   if (key === 'x-ai' || key === 'grok') return 'xai';
+  if (key === 'github' || key === 'github-copilot') return 'copilot';
   return key;
 };
 

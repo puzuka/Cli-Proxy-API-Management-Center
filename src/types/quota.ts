@@ -246,6 +246,47 @@ export interface CodexQuotaState {
   errorStatus?: number;
 }
 
+// GitHub Copilot API payload types
+export interface CopilotQuotaSnapshot {
+  entitlement?: number | string | null;
+  remaining?: number | string | null;
+  unlimited?: boolean | string | number | null;
+  used?: number | string | null;
+  total?: number | string | null;
+  limit?: number | string | null;
+}
+
+export interface CopilotUserPayload {
+  copilot_plan?: string | null;
+  access_type_sku?: string | null;
+  quota_reset_date?: string | null;
+  limited_user_reset_date?: string | null;
+  quota_snapshots?: Record<string, CopilotQuotaSnapshot | null | undefined> | null;
+  monthly_quotas?: Record<string, number | string | null | undefined> | null;
+  limited_user_quotas?: Record<string, number | string | null | undefined> | null;
+}
+
+export interface CopilotQuotaRow {
+  id: string;
+  label?: string;
+  labelKey?: string;
+  labelParams?: Record<string, string | number>;
+  used: number | null;
+  limit: number | null;
+  remaining: number | null;
+  remainingPercent: number | null;
+  unlimited?: boolean;
+  resetDate?: string;
+}
+
+export interface CopilotQuotaState {
+  status: 'idle' | 'loading' | 'success' | 'error';
+  rows: CopilotQuotaRow[];
+  planType?: string | null;
+  error?: string;
+  errorStatus?: number;
+}
+
 // Kimi API payload types
 export interface KimiUsageDetail {
   used?: number;

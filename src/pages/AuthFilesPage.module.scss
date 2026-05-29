@@ -509,6 +509,10 @@
   background-image: linear-gradient(180deg, rgba(234, 231, 255, 0.08), transparent);
 }
 
+.copilotCard {
+  background-image: linear-gradient(180deg, rgba(229, 231, 235, 0.1), transparent);
+}
+
 .geminiCliCard {
   background-image: linear-gradient(180deg, rgba(224, 232, 255, 0.08), transparent);
 }
@@ -1931,9 +1935,9 @@
   background-color: var(--bg-secondary);
   border-radius: $radius-md;
   border: 1px solid var(--border-color);
-  flex-wrap: wrap;
   cursor: pointer;
   transition: all $transition-fast;
+  min-width: 0;
 
   &:hover {
     background-color: var(--bg-hover);
@@ -1945,18 +1949,41 @@
   }
 }
 
+.modelMain {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
 .modelId {
   font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
   font-size: 13px;
   font-weight: 600;
   color: var(--text-primary);
-  word-break: break-all;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
 }
 
 .modelDisplayName {
   font-size: 12px;
   color: var(--text-secondary);
-  flex-shrink: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.modelActions {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  flex: 0 0 auto;
+  min-width: max-content;
 }
 
 .modelType {
@@ -1966,7 +1993,6 @@
   padding: 2px 8px;
   border-radius: 10px;
   flex-shrink: 0;
-  margin-left: auto;
 }
 
 .modelItemExcluded {
@@ -1992,6 +2018,42 @@
   border-radius: 8px;
   border: 1px solid var(--danger-color);
   flex-shrink: 0;
+}
+
+.modelTestButton {
+  min-width: 72px;
+  justify-content: center;
+
+  > span {
+    white-space: nowrap;
+  }
+}
+
+.modelTestButtonSuccess {
+  color: var(--success-color);
+  border-color: var(--success-color);
+  background-color: rgba($success-color, 0.1);
+}
+
+.modelTestButtonError {
+  min-width: 76px;
+}
+
+@media (max-width: 640px) {
+  .modelItem {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .modelActions {
+    justify-content: space-between;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .modelTestButton {
+    margin-left: auto;
+  }
 }
 
 // 排除模型勾选列表

@@ -42,6 +42,18 @@ type AuthFileBatchDeleteResult = {
   files: string[];
   failed: AuthFileBatchFailure[];
 };
+export type AuthFileModelTestRequest = {
+  name: string;
+  authIndex?: string | number | null;
+  model: string;
+};
+export type AuthFileModelTestResponse = {
+  status?: string;
+  model?: string;
+  auth_id?: string;
+  auth_index?: string;
+  response_time_ms?: number;
+};
 
 export const AUTH_FILE_INVALID_JSON_OBJECT_ERROR = 'AUTH_FILE_INVALID_JSON_OBJECT';
 
@@ -513,6 +525,14 @@ export const authFilesApi = {
     return Array.isArray(models)
       ? (models as { id: string; display_name?: string; type?: string; owned_by?: string }[])
       : [];
+  },
+
+  testModelForAuthFile(payload: AuthFileModelTestRequest): Promise<AuthFileModelTestResponse> {
+    return apiClient.post<AuthFileModelTestResponse>('/auth-files/test-model', {
+      name: payload.name,
+      auth_index: payload.authIndex,
+      model: payload.model
+    });
   },
 
   // 获取指定 channel 的模型定义

@@ -159,7 +159,9 @@ export function AuthFilesPage() {
     modelsFileName,
     modelsFileType,
     modelsError,
+    modelTestStatuses,
     showModels,
+    testModel,
     closeModelsModal,
   } = useAuthFilesModels();
 
@@ -908,8 +910,10 @@ export function AuthFilesPage() {
         error={modelsError}
         models={modelsList}
         excluded={excluded}
+        testStatuses={modelTestStatuses}
         onClose={closeModelsModal}
         onCopyText={copyTextWithNotification}
+        onTestModel={(modelId) => void testModel(modelId)}
       />
 
       <AuthFilesPrefixProxyEditorModal

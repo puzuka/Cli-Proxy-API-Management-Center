@@ -11,7 +11,8 @@ export type OAuthProvider =
   | 'gemini-cli'
   | 'kimi'
   | 'xai'
-  | 'kiro';
+  | 'kiro'
+  | 'copilot';
 
 export type KiroAuthMethod = 'builder-id' | 'idc';
 
@@ -25,9 +26,9 @@ export interface KiroAuthOptions {
 }
 
 export interface OAuthStartOptions {
-  /** gemini-cli only — Google Cloud project ID. */
+  /** gemini-cli only - Google Cloud project ID. */
   projectId?: string;
-  /** kiro only — flow selection and IDC inputs. */
+  /** kiro only - flow selection and IDC inputs. */
   kiro?: KiroAuthOptions;
 }
 
@@ -36,8 +37,11 @@ export interface OAuthStartResponse {
   state?: string;
   /** kiro only — echoes the resolved auth method back to the UI. */
   method?: KiroAuthMethod;
-  /** kiro only — user code embedded in the verification URL (informational). */
   user_code?: string;
+  verification_uri?: string;
+  verification_uri_complete?: string;
+  expires_in?: number;
+  interval?: number;
 }
 
 export interface OAuthCallbackResponse {
@@ -49,10 +53,11 @@ const WEBUI_SUPPORTED: OAuthProvider[] = [
   'anthropic',
   'antigravity',
   'gemini-cli',
-  'xai'
+  'xai',
+  'copilot',
 ];
 const CALLBACK_PROVIDER_MAP: Partial<Record<OAuthProvider, string>> = {
-  'gemini-cli': 'gemini'
+  'gemini-cli': 'gemini',
 };
 
 export const oauthApi = {
@@ -71,20 +76,20 @@ export const oauthApi = {
       if (region) params.region = region;
     }
     return apiClient.get<OAuthStartResponse>(`/${provider}-auth-url`, {
-      params: Object.keys(params).length ? params : undefined
+      params: Object.keys(params).length ? params : undefined,
     });
   },
 
   getAuthStatus: (state: string) =>
     apiClient.get<{ status: 'ok' | 'wait' | 'error'; error?: string }>(`/get-auth-status`, {
-      params: { state }
+      params: { state },
     }),
 
   submitCallback: (provider: OAuthProvider, redirectUrl: string) => {
     const callbackProvider = CALLBACK_PROVIDER_MAP[provider] ?? provider;
     return apiClient.post<OAuthCallbackResponse>('/oauth-callback', {
       provider: callbackProvider,
-      redirect_url: redirectUrl
+      redirect_url: redirectUrl,
     });
-  }
+  },
 };
