@@ -20,9 +20,12 @@ export type UseAuthFilesModelsResult = {
   modelsList: AuthFileModelItem[];
   modelsFileName: string;
   modelsFileType: string;
+  modelsManual: boolean;
+  modelsSaving: boolean;
   modelsError: ModelsError;
   modelTestStatuses: Record<string, ModelTestState>;
   showModels: (item: AuthFileItem) => Promise<void>;
+  saveModels: (models: AuthFileModelItem[]) => Promise<void>;
   testModel: (modelId: string) => Promise<void>;
   closeModelsModal: () => void;
 };
@@ -43,9 +46,13 @@ export function useAuthFilesModels(): UseAuthFilesModelsResult {
   const [modelsFileName, setModelsFileName] = useState('');
   const [modelsFileType, setModelsFileType] = useState('');
   const [modelsAuthIndex, setModelsAuthIndex] = useState('');
+  const [modelsManual, setModelsManual] = useState(false);
+  const [modelsSaving, setModelsSaving] = useState(false);
   const [modelsError, setModelsError] = useState<ModelsError>(null);
   const [modelTestStatuses, setModelTestStatuses] = useState<Record<string, ModelTestState>>({});
-  const modelsCacheRef = useRef<Map<string, AuthFileModelItem[]>>(new Map());
+  const modelsCacheRef = useRef<Map<string, { models: AuthFileModelItem[]; manual: boolean }>>(
+    new Map()
+  );
   const modelsContextKeyRef = useRef('');
 
   const closeModelsModal = useCallback(() => {
@@ -60,22 +67,25 @@ export function useAuthFilesModels(): UseAuthFilesModelsResult {
       setModelsFileType(item.type || '');
       setModelsAuthIndex(authIndex);
       setModelsList([]);
+      setModelsManual(false);
       setModelsError(null);
       setModelTestStatuses({});
       setModelsModalOpen(true);
 
       const cached = modelsCacheRef.current.get(item.name);
       if (cached) {
-        setModelsList(cached);
+        setModelsList(cached.models);
+        setModelsManual(cached.manual);
         setModelsLoading(false);
         return;
       }
 
       setModelsLoading(true);
       try {
-        const models = await authFilesApi.getModelsForAuthFile(item.name);
-        modelsCacheRef.current.set(item.name, models);
-        setModelsList(models);
+        const result = await authFilesApi.getModelsForAuthFile(item.name);
+        modelsCacheRef.current.set(item.name, result);
+        setModelsList(result.models);
+        setModelsManual(result.manual);
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : '';
         if (
@@ -94,6 +104,37 @@ export function useAuthFilesModels(): UseAuthFilesModelsResult {
     [showNotification, t]
   );
 
+  const saveModels = useCallback(
+    async (models: AuthFileModelItem[]) => {
+      const name = modelsFileName.trim();
+      if (!name) return;
+
+      setModelsSaving(true);
+      try {
+        const result = await authFilesApi.saveModelsForAuthFile(name, models);
+        modelsCacheRef.current.set(name, result);
+        setModelsList(result.models);
+        setModelsManual(result.manual);
+        setModelTestStatuses({});
+        showNotification(
+          t('auth_files.models_save_success', { defaultValue: 'Model list saved' }),
+          'success'
+        );
+      } catch (err) {
+        const errorMessage =
+          getErrorMessage(err) || t('common.unknown_error', { defaultValue: 'Unknown error' });
+        showNotification(
+          `${t('notification.save_failed', { defaultValue: 'Save failed' })}: ${errorMessage}`,
+          'error'
+        );
+        throw err;
+      } finally {
+        setModelsSaving(false);
+      }
+    },
+    [modelsFileName, showNotification, t]
+  );
+
   const testModel = useCallback(
     async (modelId: string) => {
       const model = String(modelId ?? '').trim();
@@ -105,20 +146,20 @@ export function useAuthFilesModels(): UseAuthFilesModelsResult {
         if (modelsContextKeyRef.current !== contextKey) return;
         setModelTestStatuses((current) => ({
           ...current,
-          [model]: state
+          [model]: state,
         }));
       };
 
       updateStatus({
         status: 'loading',
-        message: t('auth_files.model_test_running', { defaultValue: 'Testing...' })
+        message: t('auth_files.model_test_running', { defaultValue: 'Testing...' }),
       });
 
       try {
         const result = await authFilesApi.testModelForAuthFile({
           name,
           authIndex: modelsAuthIndex || undefined,
-          model
+          model,
         });
         const responseTimeMs =
           typeof result.response_time_ms === 'number' && Number.isFinite(result.response_time_ms)
@@ -132,14 +173,15 @@ export function useAuthFilesModels(): UseAuthFilesModelsResult {
               ? t('auth_files.model_test_success', { defaultValue: 'Test passed' })
               : t('auth_files.model_test_success_ms', {
                   defaultValue: 'OK ({{ms}} ms)',
-                  ms: responseTimeMs
-                })
+                  ms: responseTimeMs,
+                }),
         });
       } catch (err) {
-        const errorMessage = getErrorMessage(err) || t('common.unknown_error', { defaultValue: 'Unknown error' });
+        const errorMessage =
+          getErrorMessage(err) || t('common.unknown_error', { defaultValue: 'Unknown error' });
         updateStatus({
           status: 'error',
-          message: `${t('auth_files.model_test_failed', { defaultValue: 'Test failed' })}: ${errorMessage}`
+          message: `${t('auth_files.model_test_failed', { defaultValue: 'Test failed' })}: ${errorMessage}`,
         });
       }
     },
@@ -152,10 +194,13 @@ export function useAuthFilesModels(): UseAuthFilesModelsResult {
     modelsList,
     modelsFileName,
     modelsFileType,
+    modelsManual,
+    modelsSaving,
     modelsError,
     modelTestStatuses,
     showModels,
+    saveModels,
     testModel,
-    closeModelsModal
+    closeModelsModal,
   };
 }

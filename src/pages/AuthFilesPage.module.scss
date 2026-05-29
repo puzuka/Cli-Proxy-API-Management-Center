@@ -1921,6 +1921,114 @@
 }
 
 // 模型列表弹窗
+.modelsToolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $spacing-md;
+  margin-bottom: $spacing-sm;
+}
+
+.modelsToolbarMeta {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  min-width: 0;
+  color: var(--text-tertiary);
+  font-size: 12px;
+}
+
+.modelsModeBadge {
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--border-color);
+  background-color: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 18px;
+}
+
+.modelsToolbarActions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: $spacing-xs;
+  flex-wrap: wrap;
+
+  :global(.btn.btn-sm > span) {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+  }
+}
+
+.modelEditorPanel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: $spacing-sm;
+  margin-bottom: $spacing-sm;
+  padding: $spacing-sm;
+  border: 1px solid color-mix(in srgb, var(--primary-color) 24%, var(--border-color));
+  border-radius: $radius-md;
+  background-color: color-mix(in srgb, var(--primary-color) 6%, var(--bg-secondary));
+}
+
+.modelEditorGrid {
+  display: grid;
+  grid-template-columns: minmax(150px, 1.3fr) minmax(130px, 1fr) minmax(100px, 0.75fr) minmax(
+      110px,
+      0.85fr
+    );
+  gap: $spacing-xs;
+  min-width: 0;
+}
+
+.modelEditInput {
+  width: 100%;
+  min-width: 0;
+  height: 34px;
+  box-sizing: border-box;
+  padding: 0 10px;
+  border: 1px solid var(--border-color);
+  border-radius: $radius-sm;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 12px;
+
+  &:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-color) 14%, transparent);
+  }
+
+  &::placeholder {
+    color: var(--text-tertiary);
+  }
+}
+
+.modelEditorActions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: $spacing-xs;
+
+  :global(.btn.btn-sm > span) {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+  }
+}
+
+.modelEditorError {
+  grid-column: 1 / -1;
+  color: var(--danger-color);
+  font-size: 12px;
+  font-weight: 500;
+}
+
 .modelsList {
   display: flex;
   flex-direction: column;
@@ -1982,8 +2090,10 @@
   display: flex;
   align-items: center;
   gap: $spacing-xs;
+  flex-wrap: wrap;
+  justify-content: flex-end;
   flex: 0 0 auto;
-  min-width: max-content;
+  min-width: 0;
 }
 
 .modelType {
@@ -2039,7 +2149,52 @@
   min-width: 76px;
 }
 
+.modelInlineButton {
+  min-width: 52px;
+}
+
+.modelIconButton:global(.btn.btn-sm) {
+  width: 34px;
+  min-width: 34px;
+  padding-inline: 0;
+
+  > span {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
 @media (max-width: 640px) {
+  .modelsToolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .modelsToolbarActions {
+    justify-content: stretch;
+
+    :global(.btn) {
+      flex: 1 1 auto;
+    }
+  }
+
+  .modelEditorPanel {
+    grid-template-columns: 1fr;
+  }
+
+  .modelEditorGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .modelEditorActions {
+    justify-content: stretch;
+
+    :global(.btn) {
+      flex: 1 1 auto;
+    }
+  }
+
   .modelItem {
     align-items: stretch;
     flex-direction: column;

@@ -67,8 +67,7 @@ const BATCH_BAR_HIDDEN_TRANSFORM = 'translateX(-50%) translateY(56px)';
 const DEFAULT_REGULAR_PAGE_SIZE = 9;
 const DEFAULT_COMPACT_PAGE_SIZE = 12;
 
-const escapeWildcardSearchSegment = (value: string) =>
-  value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const escapeWildcardSearchSegment = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 const buildWildcardSearch = (value: string): RegExp | null => {
   if (!value.includes('*')) return null;
@@ -158,9 +157,12 @@ export function AuthFilesPage() {
     modelsList,
     modelsFileName,
     modelsFileType,
+    modelsManual,
+    modelsSaving,
     modelsError,
     modelTestStatuses,
     showModels,
+    saveModels,
     testModel,
     closeModelsModal,
   } = useAuthFilesModels();
@@ -204,10 +206,7 @@ export function AuthFilesPage() {
       if (typeof persisted.disabledOnly === 'boolean') {
         setDisabledOnly(persisted.disabledOnly);
       }
-      if (
-        typeof persistedCompactMode !== 'boolean' &&
-        typeof persisted.compactMode === 'boolean'
-      ) {
+      if (typeof persistedCompactMode !== 'boolean' && typeof persisted.compactMode === 'boolean') {
         setCompactMode(persisted.compactMode);
       }
       if (typeof persisted.search === 'string') {
@@ -223,11 +222,11 @@ export function AuthFilesPage() {
       const regularPageSize =
         typeof persisted.regularPageSize === 'number' && Number.isFinite(persisted.regularPageSize)
           ? clampCardPageSize(persisted.regularPageSize)
-          : legacyPageSize ?? DEFAULT_REGULAR_PAGE_SIZE;
+          : (legacyPageSize ?? DEFAULT_REGULAR_PAGE_SIZE);
       const compactPageSize =
         typeof persisted.compactPageSize === 'number' && Number.isFinite(persisted.compactPageSize)
           ? clampCardPageSize(persisted.compactPageSize)
-          : legacyPageSize ?? DEFAULT_COMPACT_PAGE_SIZE;
+          : (legacyPageSize ?? DEFAULT_COMPACT_PAGE_SIZE);
       setPageSizeByMode({
         regular: regularPageSize,
         compact: compactPageSize,
@@ -907,12 +906,15 @@ export function AuthFilesPage() {
         fileName={modelsFileName}
         fileType={modelsFileType}
         loading={modelsLoading}
+        saving={modelsSaving}
         error={modelsError}
         models={modelsList}
+        manual={modelsManual}
         excluded={excluded}
         testStatuses={modelTestStatuses}
         onClose={closeModelsModal}
         onCopyText={copyTextWithNotification}
+        onSaveModels={saveModels}
         onTestModel={(modelId) => void testModel(modelId)}
       />
 
