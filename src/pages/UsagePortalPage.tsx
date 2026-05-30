@@ -383,7 +383,6 @@ function RecentRows({ rows }: { rows: UsageRecentRequest[] }) {
         row.alias,
         row.endpoint,
         row.request_id,
-        row.account_label,
         row.auth_type,
         String(row.status_code || ''),
       ]
@@ -408,7 +407,7 @@ function RecentRows({ rows }: { rows: UsageRecentRequest[] }) {
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search provider, model, account, request ID"
+            placeholder="Search provider, model, endpoint, request ID"
             spellCheck={false}
           />
           {query && (
@@ -483,7 +482,6 @@ function RecentRows({ rows }: { rows: UsageRecentRequest[] }) {
                   <th>Time</th>
                   <th>Provider</th>
                   <th>Model</th>
-                  <th>Account</th>
                   <th>Endpoint</th>
                   <th>Effort</th>
                   <th>Tokens</th>
@@ -502,7 +500,6 @@ function RecentRows({ rows }: { rows: UsageRecentRequest[] }) {
                       <span>{row.alias || row.model || '-'}</span>
                       {row.alias && row.model && row.alias !== row.model && <small>{row.model}</small>}
                     </td>
-                    <td className={styles.accountCell}>{row.account_label || row.auth_type || '-'}</td>
                     <td>{row.endpoint || '-'}</td>
                     <td>{row.reasoning_effort || '-'}</td>
                     <td className={styles.numericCell}>
