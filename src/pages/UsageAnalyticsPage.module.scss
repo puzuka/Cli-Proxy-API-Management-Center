@@ -47,6 +47,64 @@
   }
 }
 
+.headerActions {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-sm;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+
+  @include mobile {
+    width: 100%;
+    justify-content: stretch;
+  }
+}
+
+.liveBadge {
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid var(--border-color);
+  border-radius: 999px;
+  background: var(--bg-primary);
+  color: var(--text-secondary);
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+
+  span {
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    background: currentColor;
+    box-shadow: 0 0 0 3px color-mix(in srgb, currentColor 16%, transparent);
+  }
+}
+
+.liveConnected {
+  border-color: var(--success-badge-border);
+  background: var(--success-badge-bg);
+  color: var(--success-badge-text);
+}
+
+.liveConnecting {
+  border-color: color-mix(in srgb, var(--primary-color) 34%, var(--border-color));
+  background: color-mix(in srgb, var(--primary-color) 12%, var(--bg-primary));
+  color: var(--primary-color);
+}
+
+.liveError {
+  border-color: var(--warning-border);
+  background: var(--warning-bg);
+  color: var(--warning-text);
+}
+
+.liveIdle {
+  color: var(--text-secondary);
+}
+
 .toolbar {
   display: flex;
   justify-content: space-between;
@@ -192,7 +250,7 @@
 
   table {
     width: 100%;
-    min-width: 720px;
+    min-width: 900px;
     border-collapse: collapse;
     font-size: 13px;
   }
@@ -280,7 +338,8 @@
   p {
     margin: 0;
     color: var(--text-secondary);
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
+    font-family:
+      ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
     font-size: 12px;
   }
 }
@@ -588,8 +647,8 @@
 .segmentCached {
   background: #f59e0b;
 }
-.segmentReasoning {
-  background: #8b5cf6;
+.segmentMiss {
+  background: #ef4444;
 }
 .segmentOther {
   background: var(--text-secondary);
@@ -670,10 +729,9 @@
 
 .filters {
   display: grid;
-  grid-template-columns: repeat(4, minmax(120px, 1fr)) repeat(2, minmax(180px, 1fr)) minmax(
-      130px,
-      0.7fr
-    ) auto;
+  grid-template-columns:
+    repeat(4, minmax(120px, 1fr)) repeat(2, minmax(180px, 1fr)) minmax(130px, 0.7fr)
+    auto;
   gap: $spacing-sm;
 
   input,

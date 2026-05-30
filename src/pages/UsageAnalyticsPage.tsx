@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { IconChartLine, IconDownload, IconRefreshCw } from '@/components/ui/icons';
 import { useHeaderRefresh } from '@/hooks/useHeaderRefresh';
@@ -9,6 +9,7 @@ import {
   type UsageAnalyticsPeriod,
   type UsageAnalyticsSnapshot,
   type UsageChartPoint,
+  type UsageTokenTotals,
   type UsageQuotaStatus,
   type UsageRecentRequest,
   type UsageRequestDetailsParams,
@@ -34,12 +35,13 @@ const METRIC_OPTIONS = [
 const BREAKDOWN_OPTIONS = [
   { label: 'Total', value: 'total' },
   { label: 'Input/Output', value: 'io' },
-  { label: 'Cache/Reasoning', value: 'cache' },
+  { label: 'Cache/Miss', value: 'cache' },
 ] as const;
 
 type ChartMetric = (typeof METRIC_OPTIONS)[number]['value'];
 type ChartBreakdown = (typeof BREAKDOWN_OPTIONS)[number]['value'];
 type DriverKind = 'provider' | 'model' | 'account' | 'apiKey' | 'endpoint';
+type StreamStatus = 'idle' | 'connecting' | 'connected' | 'error';
 
 type ChartPreferences = {
   period: UsageAnalyticsPeriod;
@@ -96,11 +98,34 @@ const formatNumber = (value: unknown) => numberFormatter.format(toNumber(value))
 const formatCompact = (value: unknown) => compactFormatter.format(toNumber(value));
 const formatMoney = (value: unknown) => moneyFormatter.format(toNumber(value));
 const formatPercent = (value: unknown) => `${percentFormatter.format(toNumber(value))}%`;
+const cacheMissTokens = (
+  tokens?: Pick<UsageTokenTotals, 'input_tokens' | 'cached_tokens'> | null
+) => Math.max(0, toNumber(tokens?.input_tokens) - toNumber(tokens?.cached_tokens));
+
+const streamStatusCopy: Record<StreamStatus, string> = {
+  idle: 'Realtime idle',
+  connecting: 'Connecting live',
+  connected: 'Live',
+  error: 'Reconnecting',
+};
 
 const formatDateTime = (value?: string) => {
   if (!value) return '-';
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? '-' : date.toLocaleString();
+};
+
+const errorMessage = (err: unknown, fallback: string) =>
+  err instanceof Error ? err.message : typeof err === 'string' ? err : fallback;
+
+const isAbortLikeError = (err: unknown) => {
+  const message = errorMessage(err, '');
+  return (
+    (err instanceof DOMException && err.name === 'AbortError') ||
+    (err instanceof Error && err.name === 'AbortError') ||
+    /\babort(ed)?\b/i.test(message) ||
+    /BodyStreamBuffer was aborted/i.test(message)
+  );
 };
 
 const groupLabel = (group: UsageAnalyticsGroup, field: keyof UsageAnalyticsGroup) =>
@@ -234,11 +259,13 @@ const chartSegments = (point: UsageChartPoint, metric: ChartMetric, breakdown: C
     ].filter((segment) => segment.value > 0);
   }
   const cached = toNumber(tokens.cached_tokens);
-  const reasoning = toNumber(tokens.reasoning_tokens);
-  const other = Math.max(0, metricValue(point, metric) - cached - reasoning);
+  const cacheMiss = cacheMissTokens(tokens);
+  const output = toNumber(tokens.output_tokens);
+  const other = Math.max(0, metricValue(point, metric) - cached - cacheMiss - output);
   return [
     { key: 'cached', label: 'Cached', value: cached, className: styles.segmentCached },
-    { key: 'reasoning', label: 'Reasoning', value: reasoning, className: styles.segmentReasoning },
+    { key: 'miss', label: 'Cache miss', value: cacheMiss, className: styles.segmentMiss },
+    { key: 'output', label: 'Output', value: output, className: styles.segmentOutput },
     { key: 'other', label: 'Other', value: other, className: styles.segmentOther },
   ].filter((segment) => segment.value > 0);
 };
@@ -335,7 +362,10 @@ function GroupTable({
                 <th>Name</th>
                 <th>Requests</th>
                 <th>Input</th>
+                <th>Cached</th>
+                <th>Miss</th>
                 <th>Output</th>
+                <th>Reasoning</th>
                 <th>Total</th>
                 <th>Cost</th>
               </tr>
@@ -359,7 +389,10 @@ function GroupTable({
                   </td>
                   <td>{formatNumber(row.requests)}</td>
                   <td>{formatNumber(row.input_tokens)}</td>
+                  <td>{formatNumber(row.cached_tokens)}</td>
+                  <td>{formatNumber(cacheMissTokens(row))}</td>
                   <td>{formatNumber(row.output_tokens)}</td>
+                  <td>{formatNumber(row.reasoning_tokens)}</td>
                   <td>{formatNumber(row.total_tokens)}</td>
                   <td>{formatMoney(row.cost_usd)}</td>
                 </tr>
@@ -640,8 +673,7 @@ function UsageChart({
                   input_tokens: 1,
                   output_tokens: 1,
                   cached_tokens: 1,
-                  reasoning_tokens: 1,
-                  total_tokens: 4,
+                  total_tokens: 2,
                 },
               },
               'tokens',
@@ -662,6 +694,7 @@ function UsageChart({
                   <th>Input</th>
                   <th>Output</th>
                   <th>Cached</th>
+                  <th>Miss</th>
                   <th>Reasoning</th>
                   <th>Total</th>
                   <th>Cost</th>
@@ -675,6 +708,7 @@ function UsageChart({
                     <td>{formatNumber(point.breakdown?.input_tokens)}</td>
                     <td>{formatNumber(point.breakdown?.output_tokens)}</td>
                     <td>{formatNumber(point.breakdown?.cached_tokens)}</td>
+                    <td>{formatNumber(cacheMissTokens(point.breakdown))}</td>
                     <td>{formatNumber(point.breakdown?.reasoning_tokens)}</td>
                     <td>{formatNumber(point.tokens || point.breakdown?.total_tokens)}</td>
                     <td>{formatMoney(point.cost_usd)}</td>
@@ -827,6 +861,8 @@ function DetailsTable({
 
 export function UsageAnalyticsPage() {
   const connectionStatus = useAuthStore((state) => state.connectionStatus);
+  const apiBase = useAuthStore((state) => state.apiBase);
+  const managementKey = useAuthStore((state) => state.managementKey);
   const showNotification = useNotificationStore((state) => state.showNotification);
   const [preferences, setPreferences] = useState<ChartPreferences>(readPreferences);
   const [tab, setTab] = useState<'overview' | 'details'>('overview');
@@ -841,6 +877,10 @@ export function UsageAnalyticsPage() {
   const [loading, setLoading] = useState(true);
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [streamStatus, setStreamStatus] = useState<StreamStatus>('idle');
+  const [streamError, setStreamError] = useState('');
+  const dependentRefreshRef = useRef<() => void>(() => undefined);
+  const dependentRefreshTimerRef = useRef<number | null>(null);
 
   const disabled = connectionStatus !== 'connected';
   const period = preferences.period;
@@ -871,8 +911,7 @@ export function UsageAnalyticsPage() {
         setSnapshot(data);
         if (notifySuccess) showNotification('Usage analytics refreshed', 'success');
       } catch (err: unknown) {
-        const message = err instanceof Error ? err.message : 'Unable to load usage analytics';
-        setError(message);
+        setError(errorMessage(err, 'Unable to load usage analytics'));
       } finally {
         setLoading(false);
       }
@@ -897,8 +936,7 @@ export function UsageAnalyticsPage() {
           })
         );
       } catch (err: unknown) {
-        const message = err instanceof Error ? err.message : 'Unable to load request details';
-        setError(message);
+        setError(errorMessage(err, 'Unable to load request details'));
       } finally {
         setDetailsLoading(false);
       }
@@ -918,9 +956,8 @@ export function UsageAnalyticsPage() {
       try {
         setAPIKeyDetail(await usageAnalyticsApi.getApiKeyDetail(trimmed, period));
       } catch (err: unknown) {
-        const message = err instanceof Error ? err.message : 'Unable to load API key quota detail';
         setAPIKeyDetail(null);
-        setAPIKeyDetailError(message);
+        setAPIKeyDetailError(errorMessage(err, 'Unable to load API key quota detail'));
       } finally {
         setAPIKeyDetailLoading(false);
       }
@@ -939,6 +976,90 @@ export function UsageAnalyticsPage() {
   }, [loadAPIKeyDetail, loadDetails, loadOverview, page, selectedAPIKeyID, tab]);
 
   useHeaderRefresh(refresh);
+
+  useEffect(() => {
+    dependentRefreshRef.current = () => {
+      if (tab === 'details') {
+        void loadDetails(page);
+      }
+      if (selectedAPIKeyID) {
+        void loadAPIKeyDetail(selectedAPIKeyID);
+      }
+    };
+  }, [loadAPIKeyDetail, loadDetails, page, selectedAPIKeyID, tab]);
+
+  const scheduleDependentRefresh = useCallback(() => {
+    if (dependentRefreshTimerRef.current !== null) {
+      window.clearTimeout(dependentRefreshTimerRef.current);
+    }
+    dependentRefreshTimerRef.current = window.setTimeout(() => {
+      dependentRefreshTimerRef.current = null;
+      dependentRefreshRef.current();
+    }, 250);
+  }, []);
+
+  useEffect(
+    () => () => {
+      if (dependentRefreshTimerRef.current !== null) {
+        window.clearTimeout(dependentRefreshTimerRef.current);
+      }
+    },
+    []
+  );
+
+  useEffect(() => {
+    if (disabled || !apiBase || !managementKey) {
+      setStreamStatus('idle');
+      setStreamError('');
+      return;
+    }
+
+    let stopped = false;
+    let retryTimer: number | null = null;
+    let controller: AbortController | null = null;
+
+    const connect = async () => {
+      if (stopped) return;
+      controller = new AbortController();
+      setStreamStatus('connecting');
+      setStreamError('');
+      try {
+        await usageAnalyticsApi.streamStats(period, {
+          apiBase,
+          managementKey,
+          signal: controller.signal,
+          onSnapshot: (nextSnapshot) => {
+            setSnapshot(nextSnapshot);
+            setLoading(false);
+            setError('');
+            setStreamStatus('connected');
+            setStreamError('');
+            scheduleDependentRefresh();
+          },
+        });
+        if (!stopped) {
+          setStreamStatus('error');
+          setStreamError('Realtime stream disconnected.');
+          retryTimer = window.setTimeout(connect, 3000);
+        }
+      } catch (err: unknown) {
+        if (stopped || isAbortLikeError(err)) return;
+        setStreamStatus('error');
+        setStreamError(errorMessage(err, 'Realtime stream failed.'));
+        retryTimer = window.setTimeout(connect, 3000);
+      }
+    };
+
+    void connect();
+
+    return () => {
+      stopped = true;
+      if (retryTimer !== null) {
+        window.clearTimeout(retryTimer);
+      }
+      controller?.abort();
+    };
+  }, [apiBase, disabled, managementKey, period, scheduleDependentRefresh]);
 
   useEffect(() => {
     void loadOverview();
@@ -969,9 +1090,19 @@ export function UsageAnalyticsPage() {
   const tokenBudget = toNumber(preferences.tokenBudget);
   const budgetUsed = tokenBudget > 0 ? (totalTokens / tokenBudget) * 100 : 0;
   const cacheRatio = totalTokens > 0 ? (toNumber(tokens?.cached_tokens) / totalTokens) * 100 : 0;
+  const cacheMiss = cacheMissTokens(tokens);
   const errorRate = requests > 0 ? (failed / requests) * 100 : 0;
   const detailsTotals = details?.totals;
   const detailsTokens = detailsTotals?.tokens;
+  const streamBadgeClass =
+    streamStatus === 'connected'
+      ? styles.liveConnected
+      : streamStatus === 'connecting'
+        ? styles.liveConnecting
+        : streamStatus === 'error'
+          ? styles.liveError
+          : styles.liveIdle;
+  const streamTitle = streamError || streamStatusCopy[streamStatus];
 
   const selectedMetricLabel =
     METRIC_OPTIONS.find((option) => option.value === preferences.metric)?.label || 'Usage';
@@ -1058,6 +1189,7 @@ export function UsageAnalyticsPage() {
         'input_tokens',
         'output_tokens',
         'cached_tokens',
+        'cache_miss_tokens',
         'reasoning_tokens',
         'total_tokens',
         'cost_usd',
@@ -1068,6 +1200,7 @@ export function UsageAnalyticsPage() {
         point.breakdown?.input_tokens || 0,
         point.breakdown?.output_tokens || 0,
         point.breakdown?.cached_tokens || 0,
+        cacheMissTokens(point.breakdown),
         point.breakdown?.reasoning_tokens || 0,
         point.tokens || point.breakdown?.total_tokens || 0,
         point.cost_usd || 0,
@@ -1091,16 +1224,26 @@ export function UsageAnalyticsPage() {
           <h1>Usage & Analytics</h1>
           <p>Request volume, token flow, provider activity, and captured request details.</p>
         </div>
-        <Button
-          variant="secondary"
-          size="sm"
-          onClick={() => void refresh()}
-          loading={loading || detailsLoading}
-          disabled={disabled}
-        >
-          <IconRefreshCw size={16} />
-          Refresh
-        </Button>
+        <div className={styles.headerActions}>
+          <span
+            className={`${styles.liveBadge} ${streamBadgeClass}`}
+            title={streamTitle}
+            aria-live="polite"
+          >
+            <span aria-hidden="true" />
+            {streamStatusCopy[streamStatus]}
+          </span>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => void refresh()}
+            loading={loading || detailsLoading}
+            disabled={disabled}
+          >
+            <IconRefreshCw size={16} />
+            Refresh
+          </Button>
+        </div>
       </div>
 
       <div className={styles.toolbar}>
@@ -1162,12 +1305,12 @@ export function UsageAnalyticsPage() {
             <StatCard
               label="Estimated Cost"
               value={formatMoney(cost)}
-              hint={`${formatNumber(tokens?.input_tokens)} input / ${formatNumber(tokens?.output_tokens)} output`}
+              hint={`${formatNumber(cacheMiss)} miss / ${formatNumber(tokens?.cached_tokens)} cached / ${formatNumber(tokens?.output_tokens)} output`}
             />
             <StatCard
               label="Cache Ratio"
               value={formatPercent(cacheRatio)}
-              hint={`${formatNumber(tokens?.cached_tokens)} cached`}
+              hint={`${formatNumber(tokens?.cached_tokens)} hit / ${formatNumber(cacheMiss)} miss`}
             />
             <StatCard
               label="Error Rate"

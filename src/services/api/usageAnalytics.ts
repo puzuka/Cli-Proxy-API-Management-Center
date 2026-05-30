@@ -1,3 +1,4 @@
+import { computeApiUrl } from '@/utils/connection';
 import { apiClient } from './client';
 
 export type UsageAnalyticsPeriod = 'today' | '24h' | '7d' | '30d' | '60d';
@@ -165,6 +166,13 @@ export interface UsageRequestDetailsParams {
   end?: string;
 }
 
+export interface UsageAnalyticsStreamOptions {
+  apiBase: string;
+  managementKey: string;
+  signal?: AbortSignal;
+  onSnapshot: (snapshot: UsageAnalyticsSnapshot) => void;
+}
+
 const buildQuery = (values: Record<string, unknown>) => {
   const query = new URLSearchParams();
   Object.entries(values).forEach(([key, value]) => {
@@ -173,6 +181,71 @@ const buildQuery = (values: Record<string, unknown>) => {
   });
   const encoded = query.toString();
   return encoded ? `?${encoded}` : '';
+};
+
+const parseStreamEvent = (eventText: string) => {
+  const data = eventText
+    .split(/\r?\n/)
+    .filter((line) => line.startsWith('data:'))
+    .map((line) => line.slice(5).trimStart())
+    .join('\n');
+  if (!data) return null;
+  return JSON.parse(data) as UsageAnalyticsSnapshot;
+};
+
+const consumeStreamBuffer = (
+  buffer: string,
+  onSnapshot: (snapshot: UsageAnalyticsSnapshot) => void
+) => {
+  let nextBuffer = buffer;
+  let boundary = nextBuffer.search(/\r?\n\r?\n/);
+  while (boundary !== -1) {
+    const eventText = nextBuffer.slice(0, boundary);
+    const separatorLength = nextBuffer.startsWith('\r\n\r\n', boundary) ? 4 : 2;
+    nextBuffer = nextBuffer.slice(boundary + separatorLength);
+    const snapshot = parseStreamEvent(eventText);
+    if (snapshot) onSnapshot(snapshot);
+    boundary = nextBuffer.search(/\r?\n\r?\n/);
+  }
+  return nextBuffer;
+};
+
+const streamStats = async (
+  period: UsageAnalyticsPeriod,
+  { apiBase, managementKey, signal, onSnapshot }: UsageAnalyticsStreamOptions
+) => {
+  const endpoint = computeApiUrl(apiBase);
+  if (!endpoint || !managementKey) {
+    throw new Error('Management API connection is not configured.');
+  }
+
+  const response = await fetch(`${endpoint}/usage-analytics/stream${buildQuery({ period })}`, {
+    headers: {
+      Accept: 'text/event-stream',
+      Authorization: `Bearer ${managementKey}`,
+    },
+    cache: 'no-store',
+    signal,
+  });
+  if (response.status === 401) throw new Error('Management key was rejected.');
+  if (!response.ok) throw new Error(`Realtime stream failed: HTTP ${response.status}`);
+  if (!response.body) throw new Error('Realtime stream is unavailable in this browser.');
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+  try {
+    for (;;) {
+      const result = await reader.read();
+      if (result.done) break;
+      buffer += decoder.decode(result.value, { stream: true });
+      buffer = consumeStreamBuffer(buffer, onSnapshot);
+    }
+    buffer += decoder.decode();
+    consumeStreamBuffer(buffer, onSnapshot);
+  } finally {
+    reader.releaseLock();
+  }
 };
 
 export const usageAnalyticsApi = {
@@ -198,4 +271,6 @@ export const usageAnalyticsApi = {
     apiClient.get<UsageAnalyticsAPIKeyDetail>(
       `/usage-analytics/api-keys/${encodeURIComponent(id)}${buildQuery({ period })}`
     ),
+
+  streamStats,
 };
