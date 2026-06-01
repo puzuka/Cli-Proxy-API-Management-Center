@@ -424,6 +424,20 @@ export function IconSidebarProviders({ size = 20, ...props }: IconProps) {
   );
 }
 
+export function IconSidebarCompact({ size = 20, ...props }: IconProps) {
+  return (
+    <svg {...sidebarSvgProps} width={size} height={size} {...props}>
+      <rect x="4" y="4" width="16" height="16" rx="2.5" />
+      <path d="M8 8h8" />
+      <path d="M8 12h5.5" />
+      <path d="M8 16h3.5" />
+      <path d="M16.5 14.2 19 16.7l-2.5 2.5" />
+      <path d="M19 16.7h-5.4" />
+      <circle cx="16.5" cy="8" r="1.2" fill="currentColor" fillOpacity="0.14" />
+    </svg>
+  );
+}
+
 export function IconSidebarAuthFiles({ size = 20, ...props }: IconProps) {
   return (
     <svg {...sidebarSvgProps} width={size} height={size} {...props}>

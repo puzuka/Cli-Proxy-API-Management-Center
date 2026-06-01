@@ -15,6 +15,7 @@ import { MainRoutes } from '@/router/MainRoutes';
 import {
   IconSidebarApiKeys,
   IconSidebarAuthFiles,
+  IconSidebarCompact,
   IconSidebarConfig,
   IconSidebarDashboard,
   IconSidebarLogs,
@@ -46,6 +47,7 @@ const sidebarIcons: Record<string, ReactNode> = {
   quota: <IconSidebarQuota size={18} />,
   usage: <IconSidebarUsage size={18} />,
   config: <IconSidebarConfig size={18} />,
+  jcasc: <IconSidebarCompact size={18} />,
   logs: <IconSidebarLogs size={18} />,
   system: <IconSidebarSystem size={18} />,
 };
@@ -391,6 +393,11 @@ export function MainLayout() {
   const navItems = [
     { path: '/', label: t('nav.dashboard'), icon: sidebarIcons.dashboard },
     { path: '/config', label: t('nav.config_management'), icon: sidebarIcons.config },
+    {
+      path: '/jcasc',
+      label: t('nav.jcasc_config', { defaultValue: 'JCasC Config' }),
+      icon: sidebarIcons.jcasc,
+    },
     { path: '/api-keys', label: t('nav.api_keys'), icon: sidebarIcons.apiKeys },
     { path: '/ai-providers', label: t('nav.ai_providers'), icon: sidebarIcons.aiProviders },
     { path: '/auth-files', label: t('nav.auth_files'), icon: sidebarIcons.authFiles },
@@ -664,9 +671,9 @@ export function MainLayout() {
                 to={item.path}
                 className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
                 onClick={() => setSidebarOpen(false)}
-                  title={showSidebarLabels ? undefined : item.label}
-                  data-cpa-usage-nav={item.path === '/usage-analytics' ? 'true' : undefined}
-                >
+                title={showSidebarLabels ? undefined : item.label}
+                data-cpa-usage-nav={item.path === '/usage-analytics' ? 'true' : undefined}
+              >
                 <span className="nav-icon">{item.icon}</span>
                 {showSidebarLabels && <span className="nav-label">{item.label}</span>}
               </NavLink>

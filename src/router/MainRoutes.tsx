@@ -19,6 +19,7 @@ import { OAuthPage } from '@/pages/OAuthPage';
 import { QuotaPage } from '@/pages/QuotaPage';
 import { UsageAnalyticsPage } from '@/pages/UsageAnalyticsPage';
 import { ConfigPage } from '@/pages/ConfigPage';
+import { CompactContextPage } from '@/pages/CompactContextPage';
 import { LogsPage } from '@/pages/LogsPage';
 import { SystemPage } from '@/pages/SystemPage';
 
@@ -75,6 +76,8 @@ const mainRoutes = [
   { path: '/oauth', element: <OAuthPage /> },
   { path: '/quota', element: <QuotaPage /> },
   { path: '/config', element: <ConfigPage /> },
+  { path: '/jcasc', element: <CompactContextPage /> },
+  { path: '/compact-context', element: <Navigate to="/jcasc" replace /> },
   { path: '/logs', element: <LogsPage /> },
   { path: '/system', element: <SystemPage /> },
   { path: '*', element: <Navigate to="/" replace /> },
